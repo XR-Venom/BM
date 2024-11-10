@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Backend</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@3.1.0/dist/full.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    </head>
+<body>
+    <div id="app">
+        <div class="container mx-auto p-4 mt-10">
+            <div class="flex flex-col items-center mb-10">
+                <h1 class="text-3xl font-bold mb-4">Firebase Backend</h1>
+            </div>
+            <div class="flex flex-col mb-10">
+                <h2 class="text-2xl font-bold mb-4">User Information</h2>
+                <p>Name: {{ name }}</p>
+                <p>Email: {{ email }}</p>
+            </div>
+            <div class="flex flex-col mb-10">
+                <h2 class="text-2xl font-bold mb-4">To-Do Tasks</h2>
+                <ul>
+                    <li v-for="task in tasks" :key="task.id" class="mb-4">
+                        <input type="checkbox" :checked="task.completed" @change="updateTask(task)">
+                        <span :class="task.completed ? 'line-through' : ''">{{ task.text }}</span>
+                    </li>
+                </ul>
+                <input type="text" v-model="newTask" placeholder="New Task" class="input input-bordered w-full mb-4">
+                <button @click="addTask" class="btn btn-primary">Add Task</button>
+            </div>
+        </div>
+    </div>
+    <script>
+    new Vue({
+        el: '#app',
+        data: {
+            email: '',
+            name: '',
+            tasks: [],
+            newTask: ''
+        },
+        mounted() {
+            // Fetch user data from local storage or session
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user) {
+                this.name = user.name;
+                this.email = user.email;
+            } else {
+                window.location.href = 'index.html'; // Redirect to login if no user data
+            }
+
+            this.fetchTasks(); // Fetch tasks
+        },
+        methods: {
+            async fetchTasks() {
+                const response = await fetch('/api/tasks'); 
+                const tasksData = await response.json();
+                this.tasks = tasksData;
+            },
+            updateTask(task) {
+                // Send an HTTP request to update the task in your backend
+                fetch(`/api/tasks/${task.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        completed: !task.completed 
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Task updated successfully');
+                        // Optionally, refresh the task list here.
+                        this.fetchTasks();
+                    } else {
+                        console.error('Error updating task');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating task: ', error);
+                });
+            },
+            addTask() {
+                // Send an HTTP request to your backend to add the task
+                fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: this.newTask,
+                        completed: false,
+                        dueDate: new Date() // Add a due date
+                    })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Task added successfully');
+                        this.fetchTasks(); // Refresh the task list
+                        this.newTask = ''; // Clear input field
+                    } else {
+                        console.error('Error adding task');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error adding task: ', error);
+                });
+            }
+        }
+    });
+    </script>
+</body>
+</html>

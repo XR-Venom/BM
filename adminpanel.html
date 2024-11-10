@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@2.51.6/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script> 
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <nav class="navbar bg-base-100">
+            <div class="navbar-start">
+                <a class="btn btn-ghost normal-case text-xl">Admin Panel</a>
+            </div>
+            <div class="navbar-end">
+                <button class="btn btn-primary" v-on:click="signOut">Sign out</button>
+            </div>
+        </nav>
+        <div class="container mx-auto mt-5">
+            <h1 class="text-3xl font-bold mb-4">Employees</h1>
+            <ul>
+                <li v-for="employee in employees" :key="employee._id">{{ employee.name }} ({{ employee.email }})</li>
+            </ul>
+            <h1 class="text-3xl font-bold mb-4 mt-10">Announcement</h1>
+            <form @submit.prevent="updateAnnouncement">
+                <input type="text" v-model="announcement" placeholder="Type here" class="input input-bordered input-lg w-full max-w-xs">
+                <button class="btn btn-primary mt-3" type="submit">Update</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        Vue.config.devtools = true;
+        let app = new Vue({
+            el: '#app',
+            data: {
+                employees: [],
+                announcement: ''
+            },
+            methods: {
+                async updateAnnouncement() {
+                    const response = await fetch('/api/announcement', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ text: this.announcement })
+                    });
+
+                    if (response.ok) {
+                        console.log("Announcement updated successfully");
+                        this.fetchAnnouncement(); // Refresh announcement
+                    } else {
+                        console.error('Error updating announcement:', response.status);
+                    }
+                },
+
+                signOut() {
+                    window.location.href = 'index.html';
+                },
+                async fetchAnnouncement() {
+                    const response = await fetch('/api/announcement');
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.announcement = data.text;
+                    } else {
+                        console.error('Error fetching announcement:', response.status);
+                    }
+                },
+                async fetchEmployees() {
+                     const response = await fetch('/api/employees');
+                     if (response.ok) {
+                        const data = await response.json();
+                        this.employees = data;
+                     } else {
+                        console.error('Error fetching employees:', response.status);
+                     }
+                }
+            },
+
+            async mounted() { 
+               await this.fetchEmployees();
+               await this.fetchAnnouncement();
+            }
+        });
+
+    </script>
+</body>
+</html>

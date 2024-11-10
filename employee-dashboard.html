@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.1.0/dist/full.css" rel="stylesheet" type="text/css" />
+
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        #taskList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #taskList li {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold mb-4">Welcome, <span id="employeeName"></span></h1>
+
+        <div class="p-4 bg-white rounded-md shadow-md">
+            <h2 class="text-2xl font-bold mb-4">Your Tasks</h2>
+            <ul id="taskList"></ul> 
+        </div>
+
+        <div class="mt-4 p-4 bg-white rounded-md shadow-md">
+            <h2 class="text-2xl font-bold mb-4">Announcements</h2>
+            <p id="announcementText"></p>
+        </div>
+        
+        <div class="mt-4">
+                <button onclick="logout()" class="btn btn-primary">Logout</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let employeeId = localStorage.getItem('employeeId');
+        let employeeName = localStorage.getItem('employeeName');
+        let tasks = [];
+        let announcementText = '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('employeeName').textContent = employeeName;
+            fetchTasks();
+            fetchAnnouncement();
+            recordLoginTime();
+        });
+
+        async function fetchTasks() {
+            try {
+                const response = await fetch(`http://localhost:3000/api/tasks/employee/${employeeId}`);
+                if (response.ok) {
+                    tasks = await response.json();
+                    populateTaskList();
+                } else {
+                    console.error('Error fetching tasks:', response.status);
+                }
+            } catch (error) {
+                console.error('Error fetching tasks:', error);
+            }
+        }
+
+        async function fetchAnnouncement() {
+            try {
+                const response = await fetch('http://localhost:3000/api/announcement');
+                if (response.ok) {
+                    const data = await response.json();
+                    announcementText = data.text;
+                    document.getElementById('announcementText').textContent = announcementText;
+                } else {
+                    console.error('Error fetching announcement:', response.status);
+                }
+            } catch (error) {
+                console.error('Error fetching announcement:', error);
+            }
+        }
+
+        function populateTaskList() {
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = ''; // Clear the list
+
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <input type="checkbox" onchange="updateTaskCompletionStatus('${task._id}')" ${task.completed ? 'checked' : ''}>
+                    <span>${task.text}</span> - Due Date: ${task.due_date ? new Date(task.due_date).toLocaleDateString() : 'N/A'}
+                `;
+                taskList.appendChild(li);
+            });
+        }
+
+        async function updateTaskCompletionStatus(taskId) {
+            const task = tasks.find(t => t._id === taskId);
+            if (!task) {
+                console.error('Task not found:', taskId);
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ completed: !task.completed }),
+                });
+
+                if (response.ok) {
+                    // Update the task in the local array as well
+                    task.completed = !task.completed;
+                    populateTaskList(); // Re-render the task list
+                } else {
+                    console.error('Error updating task completion status:', response.status);
+                }
+            } catch (error) {
+                console.error('Error updating task completion status:', error);
+            }
+        }
+        async function recordLoginTime() {
+            try {
+                const response = await fetch('http://localhost:3000/api/login-time', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ employee_id: employeeId }),
+                });
+
+                if (!response.ok) {
+                    console.error('Error recording login time:', response.status);
+                }
+            } catch (error) {
+                console.error('Error recording login time:', error);
+            }
+        }
+
+        async function recordLogoutTime() {
+            try {
+                const response = await fetch('http://localhost:3000/api/logout-time', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ employee_id: employeeId }),
+                });
+
+                if (!response.ok) {
+                    console.error('Error recording logout time:', response.status);
+                }
+            } catch (error) {
+                console.error('Error recording logout time:', error);
+            }
+        }
+
+        function logout() {
+    const employeeId = localStorage.getItem('employeeId'); // Retrieve employeeId from localStorage or other storage
+    recordLogoutTime(employeeId).then(() => {
+        // Clear local storage and redirect after logout time is recorded
+        localStorage.removeItem('employeeId');
+        localStorage.removeItem('employeeName');
+        localStorage.removeItem('employeeRole');
+        window.location.href = 'index.html';
+    });
+}
+
+    </script>
+</body>
+</html>

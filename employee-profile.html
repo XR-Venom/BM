@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Profile</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@3.1.0/dist/full.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script> 
+</head>
+<body>
+    <div id="app">
+        <div class="container mx-auto p-4 mt-10">
+            <div class="flex flex-col items-center mb-10">
+                <h1 class="text-3xl font-bold mb-4">Employee Profile</h1>
+            </div>
+            <div class="flex flex-col mb-10">
+                <h2 class="text-2xl font-bold mb-4">Employee Information</h2>
+                <p>Name: {{ employee.name }}</p>
+                <p>Email: {{ employee.email }}</p>
+            </div>
+            <div class="flex flex-col mb-10">
+                <h2 class="text-2xl font-bold mb-4">Login History</h2>
+                <ul>
+                    <li v-for="login in logins" :key="login._id" class="mb-4">
+                        <span>{{ login.login_time }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const employeeId = location.search.split('=')[1];
+        new Vue({
+            el: "#app",
+            data: {
+                employee: {},
+                logins: []
+            },
+            async mounted() {
+                const responseEmployee = await fetch(`/api/employees/${employeeId}`);
+                if (responseEmployee.ok) {
+                    this.employee = await responseEmployee.json();
+                } else {
+                    console.error('Error fetching employee:', responseEmployee.status);
+                }
+
+                const responseLogins = await fetch(`/api/login-time/employee/${employeeId}`);  // Assuming /api/login-time/employee/:id
+                if (responseLogins.ok) {
+                    this.logins = await responseLogins.json();
+                } else {
+                    console.error('Error fetching logins:', responseLogins.status);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
